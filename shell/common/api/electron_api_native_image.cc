@@ -17,6 +17,7 @@
 #include "gin/arguments.h"
 #include "gin/object_template_builder.h"
 #include "gin/per_isolate_data.h"
+#include "gin/wrappable.h"
 #include "net/base/data_url.h"
 #include "shell/common/asar/asar_util.h"
 #include "shell/common/gin_converters/file_path_converter.h"
@@ -135,15 +136,13 @@ NativeImage::~NativeImage() {
 }
 
 // static
-bool NativeImage::TryConvertNativeImage(
-    v8::Isolate* isolate,
-    v8::Local<v8::Value> image,
-    gin::Handle<NativeImage>* native_image) {
+bool NativeImage::TryConvertNativeImage(v8::Isolate* isolate,
+                                        v8::Local<v8::Value> image,
+                                        NativeImage* native_image) {
   base::FilePath icon_path;
   if (gin::ConvertFromV8(isolate, image, &icon_path)) {
-    *native_image =
-        electron::api::NativeImage::CreateFromPath(isolate, icon_path);
-    if ((*native_image)->image().IsEmpty()) {
+    native_image = NativeImage::CreateFromPath(isolate, icon_path).get();
+    if (native_image->image().IsEmpty()) {
 #if defined(OS_WIN)
       const auto img_path = base::UTF16ToUTF8(icon_path.value());
 #else
@@ -154,7 +153,7 @@ bool NativeImage::TryConvertNativeImage(
       return false;
     }
   } else {
-    if (!gin::ConvertFromV8(isolate, image, native_image)) {
+    if (!gin::ConvertFromV8(isolate, image, &native_image)) {
       isolate->ThrowException(v8::Exception::Error(gin::StringToV8(
           isolate, "Argument must be a file path or a NativeImage")));
       return false;
@@ -610,18 +609,6 @@ v8::Local<v8::Value> Converter<electron::api::NativeImage*>::ToV8(
     return ret;
   else
     return v8::Null(isolate);
-}
-
-bool Converter<electron::api::NativeImage*>::FromV8(
-    v8::Isolate* isolate,
-    v8::Local<v8::Value> val,
-    electron::api::NativeImage** out) {
-  // reinterpret_cast is safe here because NativeImage is the only subclass of
-  // gin::Wrappable<NativeImage>.
-  *out = static_cast<electron::api::NativeImage*>(
-      static_cast<gin::WrappableBase*>(gin::internal::FromV8Impl(
-          isolate, val, &electron::api::NativeImage::kWrapperInfo)));
-  return *out != nullptr;
 }
 
 }  // namespace gin

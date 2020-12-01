@@ -79,7 +79,7 @@ class NativeImage : public gin::Wrappable<NativeImage> {
 
   static bool TryConvertNativeImage(v8::Isolate* isolate,
                                     v8::Local<v8::Value> image,
-                                    gin::Handle<NativeImage>* native_image);
+                                    NativeImage* native_image);
 
   // gin::Wrappable
   static gin::WrapperInfo kWrapperInfo;
