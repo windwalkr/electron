@@ -154,6 +154,15 @@ void ElectronRendererClient::DidCreateScriptContext(
   // Load everything.
   node_bindings_->LoadEnvironment(env);
 
+  // Node.js sets a stack trace handler specific to the context corresponding
+  // to the current Environment. When we're running in a non-Node.js context,
+  // there will be no correspondent Environment - we therefore need to unset
+  // this handler so that Blink falls back to its default handling and displays
+  // the correct stacktrace.
+  if (prefs.context_isolation) {
+    renderer_context->GetIsolate()->SetPrepareStackTraceCallback(nullptr);
+  }
+
   if (node_bindings_->uv_env() == nullptr) {
     // Make uv loop being wrapped by window context.
     node_bindings_->set_uv_env(env);
